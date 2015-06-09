@@ -1,411 +1,827 @@
 <!doctype html>
 <html lang="en">
 
-	<head>
-		<meta charset="utf-8">
+<head>
+    <meta charset="utf-8">
 
-		<title>reveal.js - The HTML Presentation Framework</title>
+    <title>Building generic data queries using Python AST</title>
 
-		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
-		<meta name="author" content="Hakim El Hattab">
+    <meta name="description"
+          content="Use python AST to parse formulas and build queries in SQL or pandas">
+    <meta name="author" content="Adrien Chauve">
 
-		<meta name="apple-mobile-web-app-capable" content="yes" />
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
 
-		<link rel="stylesheet" href="css/reveal.css">
-		<link rel="stylesheet" href="css/theme/black.css" id="theme">
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/solarized.css" id="theme">
 
-		<!-- Code syntax highlighting -->
-		<link rel="stylesheet" href="lib/css/zenburn.css">
+    <!-- Code syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
 
-		<!-- Printing and PDF exports -->
-		<script>
-			var link = document.createElement( 'link' );
-			link.rel = 'stylesheet';
-			link.type = 'text/css';
-			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
-			document.getElementsByTagName( 'head' )[0].appendChild( link );
-		</script>
+    <!-- Printing and PDF exports -->
+    <script>
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = window.location.search.match(/print-pdf/gi) ? 'css/print/pdf.css' : 'css/print/paper.css';
+        document.getElementsByTagName('head')[0].appendChild(link);
+    </script>
 
-		<!--[if lt IE 9]>
-		<script src="lib/js/html5shiv.js"></script>
-		<![endif]-->
-	</head>
+    <!--[if lt IE 9]>
+    <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
 
-	<body>
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-51923804-2', 'auto');
+        ga('send', 'pageview');
+    </script>
 
-		<div class="reveal">
+</head>
 
-			<!-- Any section element inside of this container is displayed as a slide -->
-			<div class="slides">
-				<section>
-					<h1>Reveal.js</h1>
-					<h3>The HTML Presentation Framework</h3>
-					<p>
-						<small>Created by <a href="http://hakim.se">Hakim El Hattab</a> / <a href="http://twitter.com/hakimel">@hakimel</a></small>
-					</p>
-				</section>
+<body>
 
-				<section>
-					<h2>Hello There</h2>
-					<p>
-						reveal.js enables you to create beautiful interactive slide decks using HTML. This presentation will show you examples of what it can do.
-					</p>
-				</section>
+<div class="reveal">
 
-				<!-- Example of nested vertical slides -->
-				<section>
-					<section>
-						<h2>Vertical Slides</h2>
-						<p>Slides can be nested inside of each other.</p>
-						<p>Use the <em>Space</em> key to navigate through all slides.</p>
-						<br>
-						<a href="#" class="navigate-down">
-							<img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
-						</a>
-					</section>
-					<section>
-						<h2>Basement Level 1</h2>
-						<p>Nested slides are useful for adding additional detail underneath a high level horizontal slide.</p>
-					</section>
-					<section>
-						<h2>Basement Level 2</h2>
-						<p>That's it, time to go back up.</p>
-						<br>
-						<a href="#/2">
-							<img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Up arrow" style="transform: rotate(180deg); -webkit-transform: rotate(180deg);">
-						</a>
-					</section>
-				</section>
+    <!-- Any section element inside of this container is displayed as a slide -->
+    <div class="slides">
+        <section>
+            <h2>Building generic data queries</h2>
 
-				<section>
-					<h2>Slides</h2>
-					<p>
-						Not a coder? Not a problem. There's a fully-featured visual editor for authoring these, try it out at <a href="http://slides.com" target="_blank">http://slides.com</a>.
-					</p>
-				</section>
+            <h3>using Python AST</h3>
 
-				<section>
-					<h2>Point of View</h2>
-					<p>
-						Press <strong>ESC</strong> to enter the slide overview.
-					</p>
-					<p>
-						Hold down alt and click on any element to zoom in on it using <a href="http://lab.hakim.se/zoom-js">zoom.js</a>. Alt + click anywhere to zoom back out.
-					</p>
-				</section>
+            <p>
+                <small>Paris.py <a href="http://www.meetup.com/fr/Paris-py-Python-Django-friends/events/224869349" target="_blank">meetup
+                    #7</a> - Paris
+                    <br>2015-09-16
+                </small>
+            </p>
+            <p>
+                <small>Adrien Chauve <a href="http://twitter.com/adrienchauve">@adrienchauve</a>
+                    <br>
 
-				<section>
-					<h2>Touch Optimized</h2>
-					<p>
-						Presentations look great on touch devices, like mobile phones and tablets. Simply swipe through your slides.
-					</p>
-				</section>
+                    <div style="font-size: 0.8em"><a href="http://twitter.com/Serenytics">@Serenytics</a></div>
+                </small>
+            </p>
 
-				<section data-markdown>
-					<script type="text/template">
-						## Markdown support
+            <aside class="notes">
+                <ul>
+                    <li>Serenytics is an early stage startup that buils a SASS platform to Analyze, Visualize and Share your Data; go to
+                        https://www.serenytics.com for more.
+                    </li>
+                    <li>We use python with numpy, pandas, sqlalchemy, mrq for our backend.</li>
+                    <li>This talk is about how we use python AST to build generic data queries.</li>
+                </ul>
+            </aside>
+        </section>
 
-						Write content using inline or external Markdown.
-						Instructions and more info available in the [readme](https://github.com/hakimel/reveal.js#markdown).
+        <section>
+            <h2>Contents</h2>
+            <ol>
+                <li><a href="#/part-1">Building generic data queries: why?</a></li>
+                <li><a href="#/part-2">Python AST to the rescue</a></li>
+                <li><a href="#/part-3">Walking the AST to build data queries</a></li>
+            </ol>
+        </section>
 
-						```
-						<section data-markdown>
-						  ## Markdown support
+        <section id="part-1">
+            <h2>1. Building generic data queries: Why?</h2>
+        </section>
 
-						  Write content using inline or external Markdown.
-						  Instructions and more info available in the [readme](https://github.com/hakimel/reveal.js#markdown).
-						</section>
-						```
-					</script>
-				</section>
+        <section>
+            <h3>1. Building generic data queries: Why?</h3>
 
-				<section>
-					<section id="fragments">
-						<h2>Fragments</h2>
-						<p>Hit the next arrow...</p>
-						<p class="fragment">... to step through ...</p>
-						<p><span class="fragment">... a</span> <span class="fragment">fragmented</span> <span class="fragment">slide.</span></p>
+            <p>Context:</p>
+            <ul>
+                <li>You love data</li>
+                <li>You want to watch a movie</li>
+                <li>You know the <a href="http://grouplens.org/datasets/movielens/" target="_blank">MovieLens database</a> (20M
+                    ratings on 27k movies by 138k users)
+                </li>
+            </ul>
 
-						<aside class="notes">
-							This slide has fragments which are also stepped through in the notes window.
-						</aside>
-					</section>
-					<section>
-						<h2>Fragment Styles</h2>
-						<p>There's different types of fragments, like:</p>
-						<p class="fragment grow">grow</p>
-						<p class="fragment shrink">shrink</p>
-						<p class="fragment fade-out">fade-out</p>
-						<p class="fragment current-visible">current-visible</p>
-						<p class="fragment highlight-red">highlight-red</p>
-						<p class="fragment highlight-blue">highlight-blue</p>
-					</section>
-				</section>
+            <p>Disclaimer:</p>
+            <ul>
+                <li>could also be bigger data (sales) but less sexy!</li>
+                <li>data could be stored on a SQL server instead of a CSV file</li>
+            </ul>
+        </section>
 
-				<section id="transitions">
-					<h2>Transition Styles</h2>
-					<p>
-						You can select from different transitions, like: <br>
-						<a href="?transition=none#/transitions">None</a> -
-						<a href="?transition=fade#/transitions">Fade</a> -
-						<a href="?transition=slide#/transitions">Slide</a> -
-						<a href="?transition=convex#/transitions">Convex</a> -
-						<a href="?transition=concave#/transitions">Concave</a> -
-						<a href="?transition=zoom#/transitions">Zoom</a>
-					</p>
-				</section>
+        <section>
+            <h3>1. Context: Select the best movie (1/3)</h3>
 
-				<section id="themes">
-					<h2>Themes</h2>
-					<p>
-						reveal.js comes with a few themes built in: <br>
-						<!-- Hacks to swap themes after the page has loaded. Not flexible and only intended for the reveal.js demo deck. -->
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/black.css'); return false;">Black (default)</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/white.css'); return false;">White</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/league.css'); return false;">League</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/sky.css'); return false;">Sky</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/beige.css'); return false;">Beige</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/simple.css'); return false;">Simple</a> <br>
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/serif.css'); return false;">Serif</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/blood.css'); return false;">Blood</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/night.css'); return false;">Night</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/moon.css'); return false;">Moon</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/solarized.css'); return false;">Solarized</a>
-					</p>
-				</section>
+            <p>Naïve sort: by Average Rating then by NbRatings</p>
 
-				<section>
-					<section data-background="#dddddd">
-						<h2>Slide Backgrounds</h2>
-						<p>
-							Set <code>data-background="#dddddd"</code> on a slide to change the background color. All CSS color formats are supported.
-						</p>
-						<a href="#" class="navigate-down">
-							<img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
-						</a>
-					</section>
-					<section data-background="https://s3.amazonaws.com/hakim-static/reveal-js/image-placeholder.png">
-						<h2>Image Backgrounds</h2>
-						<pre><code>&lt;section data-background="image.png"&gt;</code></pre>
-					</section>
-					<section data-background="https://s3.amazonaws.com/hakim-static/reveal-js/image-placeholder.png" data-background-repeat="repeat" data-background-size="100px">
-						<h2>Tiled Backgrounds</h2>
-						<pre><code style="word-wrap: break-word;">&lt;section data-background="image.png" data-background-repeat="repeat" data-background-size="100px"&gt;</code></pre>
-					</section>
-					<section data-background-video="https://s3.amazonaws.com/static.slid.es/site/homepage/v1/homepage-video-editor.mp4,https://s3.amazonaws.com/static.slid.es/site/homepage/v1/homepage-video-editor.webm" data-background-color="#000000">
-						<div style="background-color: rgba(0, 0, 0, 0.9); color: #fff; padding: 20px;">
-							<h2>Video Backgrounds</h2>
-							<pre><code style="word-wrap: break-word;">&lt;section data-background-video="video.mp4,video.webm"&gt;</code></pre>
-						</div>
-					</section>
-					<section data-background="http://i.giphy.com/90F8aUepslB84.gif">
-						<h2>... and GIFs!</h2>
-					</section>
-				</section>
+            <table style="font-size: 0.5em">
+                <tr style="color: #268bd2">
+                    <th style="text-align:center">Title</th>
+                    <th style="text-align:center">Average Rating</th>
+                    <th style="text-align:center">NbRatings</th>
+                </tr>
+                <tbody style="color: grey">
+                <tr>
+                    <td style=";text-align:center;">
+                        Consuming Kids: The Commercialization of Childhood (2008)
+                    </td>
+                    <td style=";text-align:center;">
+                        5
+                    </td>
+                    <td style=";text-align:center;">
+                        2
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Catastroika (2012)
+                    </td>
+                    <td style=";text-align:center;">
+                        5
+                    </td>
+                    <td style=";text-align:center;">
+                        2
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Life On A String (Bian chang Bian Zou) (1991)
+                    </td>
+                    <td style=";text-align:center;">
+                        5
+                    </td>
+                    <td style=";text-align:center;">
+                        1
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Hijacking Catastrophe: 9/11, Fear &amp; the Selling of American Empire (2004)
+                    </td>
+                    <td style=";text-align:center;">
+                        5
+                    </td>
+                    <td style=";text-align:center;">
+                        1
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Snow Queen, The (Lumikuningatar) (1986)
+                    </td>
+                    <td style=";text-align:center;">
+                        5
+                    </td>
+                    <td style=";text-align:center;">
+                        1
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Al otro lado (2004)
+                    </td>
+                    <td style=";text-align:center;">
+                        5
+                    </td>
+                    <td style=";text-align:center;">
+                        1
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Sierra, La (2005)
+                    </td>
+                    <td style=";text-align:center;">
+                        5
+                    </td>
+                    <td style=";text-align:center;">
+                        1
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Between the Devil and the Deep Blue Sea (1995)
+                    </td>
+                    <td style=";text-align:center;">
+                        5
+                    </td>
+                    <td style=";text-align:center;">
+                        1
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Schmatta: Rags to Riches to Rags (2009)
+                    </td>
+                    <td style=";text-align:center;">
+                        5
+                    </td>
+                    <td style=";text-align:center;">
+                        1
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Moth, The (Cma) (1980)
+                    </td>
+                    <td style=";text-align:center;">
+                        5
+                    </td>
+                    <td style=";text-align:center;">
+                        1
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
 
-				<section data-transition="slide" data-background="#4d7e65" data-background-transition="zoom">
-					<h2>Background Transitions</h2>
-					<p>
-						Different background transitions are available via the backgroundTransition option. This one's called "zoom".
-					</p>
-					<pre><code>Reveal.configure({ backgroundTransition: 'zoom' })</code></pre>
-				</section>
+        <section>
+            <h3>1. Context: Select the best movie (2/3)</h3>
 
-				<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
-					<h2>Background Transitions</h2>
-					<p>
-						You can override background transitions per-slide.
-					</p>
-					<pre><code style="word-wrap: break-word;">&lt;section data-background-transition="zoom"&gt;</code></pre>
-				</section>
+            <p>Naïve sort: by NbRatings</p>
 
-				<section>
-					<h2>Pretty Code</h2>
-					<pre><code data-trim contenteditable>
-function linkify( selector ) {
-  if( supports3DTransforms ) {
+            <table style="font-size: 0.5em">
+                <tr style="color: #268bd2">
+                    <th style="text-align:center">Title</th>
+                    <th style="text-align:center">Average Rating</th>
+                    <th style="text-align:center">NbRatings</th>
+                </tr>
+                <tbody style="color: grey">
+                <tr>
+                    <td style=";text-align:center;">
+                        Pulp Fiction (1994)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.17
+                    </td>
+                    <td style=";text-align:center;">
+                        67310
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Forrest Gump (1994)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.03
+                    </td>
+                    <td style=";text-align:center;">
+                        66172
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Shawshank Redemption, The (1994)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.45
+                    </td>
+                    <td style=";text-align:center;">
+                        63366
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Silence of the Lambs, The (1991)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.18
+                    </td>
+                    <td style=";text-align:center;">
+                        63299
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Jurassic Park (1993)
+                    </td>
+                    <td style=";text-align:center;">
+                        3.66
+                    </td>
+                    <td style=";text-align:center;">
+                        59715
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Star Wars: Episode IV - A New Hope (1977)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.19
+                    </td>
+                    <td style=";text-align:center;">
+                        54502
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Braveheart (1995)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.04
+                    </td>
+                    <td style=";text-align:center;">
+                        53769
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Terminator 2: Judgment Day (1991)
+                    </td>
+                    <td style=";text-align:center;">
+                        3.93
+                    </td>
+                    <td style=";text-align:center;">
+                        52244
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Matrix, The (1999)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.19
+                    </td>
+                    <td style=";text-align:center;">
+                        51334
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Schindler's List (1993)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.31
+                    </td>
+                    <td style=";text-align:center;">
+                        50054
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
 
-    var nodes = document.querySelectorAll( selector );
+        <section>
+            <h3>1. Context: Select the best movie (3/3)</h3>
 
-    for( var i = 0, len = nodes.length; i &lt; len; i++ ) {
-      var node = nodes[i];
+            <p>Better sort: by custom rating (k=1000)</p>
+            $$CustomRating_k = AverageRating * {NbRatings \over NbRatings + k}$$
 
-      if( !node.className ) {
-        node.className += ' roll';
-      }
-    }
-  }
+            <table style="font-size: 0.5em">
+                <tr style="color: #268bd2">
+                    <th style="text-align:center">Title</th>
+                    <th style="text-align:center">Custom Rating k=1000</th>
+                    <th style="text-align:center">Average Rating</th>
+                    <th style="text-align:center">NbRatings</th>
+                </tr>
+                <tbody style="color: grey">
+                <tr>
+                    <td style=";text-align:center;">
+                        Shawshank Redemption, The (1994)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.378
+                    </td>
+                    <td style=";text-align:center;">
+                        4.45
+                    </td>
+                    <td style=";text-align:center;">
+                        63366
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Godfather, The (1972)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.262
+                    </td>
+                    <td style=";text-align:center;">
+                        4.36
+                    </td>
+                    <td style=";text-align:center;">
+                        41355
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Usual Suspects, The (1995)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.244
+                    </td>
+                    <td style=";text-align:center;">
+                        4.33
+                    </td>
+                    <td style=";text-align:center;">
+                        47006
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Schindler's List (1993)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.226
+                    </td>
+                    <td style=";text-align:center;">
+                        4.31
+                    </td>
+                    <td style=";text-align:center;">
+                        50054
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Godfather: Part II, The (1974)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.125
+                    </td>
+                    <td style=";text-align:center;">
+                        4.28
+                    </td>
+                    <td style=";text-align:center;">
+                        27398
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Fight Club (1999)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.124
+                    </td>
+                    <td style=";text-align:center;">
+                        4.23
+                    </td>
+                    <td style=";text-align:center;">
+                        40106
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Raiders of the Lost Ark (Indiana Jones and the Raiders of the Lost Ark) (1981)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.124
+                    </td>
+                    <td style=";text-align:center;">
+                        4.22
+                    </td>
+                    <td style=";text-align:center;">
+                        43295
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Star Wars: Episode IV - A New Hope (1977)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.115
+                    </td>
+                    <td style=";text-align:center;">
+                        4.19
+                    </td>
+                    <td style=";text-align:center;">
+                        54502
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Pulp Fiction (1994)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.113
+                    </td>
+                    <td style=";text-align:center;">
+                        4.17
+                    </td>
+                    <td style=";text-align:center;">
+                        67310
+                    </td>
+                </tr>
+                <tr>
+                    <td style=";text-align:center;">
+                        Silence of the Lambs, The (1991)
+                    </td>
+                    <td style=";text-align:center;">
+                        4.112
+                    </td>
+                    <td style=";text-align:center;">
+                        4.18
+                    </td>
+                    <td style=";text-align:center;">
+                        63299
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h3>1. Need computed columns to best analyze your data</h3>
+
+            <p>New computed column: $$CustomRating = AverageRating * {NbRatings \over NbRatings + 1000}$$</p>
+            <p>Using pandas (python):</p>
+            <pre style="width: 100%"><code data-trim>
+# df is a pandas.DataFrame instance
+df['CustomRating'] = df['AverageRating'] * df['NbRatings'] / (df['NbRatings'] + 1000)
+            </code></pre>
+
+            <p>In SQL:</p>
+            <pre style="width: 100%"><code data-trim>
+SELECT AverageRating * NbRatings / (NbRatings + 1000) AS CustomRating FROM ...;
+            </code></pre>
+            <br>
+            <p><strong>How to generate both pandas and SQL from a single string?</strong></p>
+        </section>
+
+
+        <section id="part-2">
+            <h2>2. Python AST to the rescue</h2>
+        </section>
+
+        <section>
+            <h3>2. AST: What is it?</h3>
+            <ul>
+                <li>Abstract Syntax Tree</li>
+                <li>represents your code as a tree object</li>
+            </ul>
+            <pre><code data-trim style="text-align: center">
+                x + 42
+            </code></pre>
+            <img src="ast_simple_expression_clean.png" style="border: none; box-shadow: none" width="600">
+        </section>
+
+        <section>
+            <h3>2. AST: What is it?</h3>
+            <ul>
+                <li>represents your code as a tree object</li>
+            </ul>
+            <pre><code data-trim>
+>>> import ast
+>>> ast.dump(ast.parse("x + 42", mode="eval")
+
+Expression(body=BinOp(left=Name(id='x', ctx=Load()),
+                      op=Add(),
+                      right=Num(n=42))))
+            </code></pre>
+            <img src="ast_simple_expression_clean.png" style="border: none; box-shadow: none" width="600">
+
+
+            <aside class="notes">
+                <ul>
+                    <li>ast.parse takes a string and returns a python object, instance of class Expression</li>
+                    <li>'mode="eval"' restricts to parsing to python expressions (same as in lambdas, no statement like if/for/def/return/import etc... authorized)</li>
+                    <li>using ast.dump enables to serialize this Expression object for humans</li>
+                </ul>
+            </aside>
+        </section>
+
+
+        <section>
+            <h3>2. AST: What is it?</h3>
+            <br>
+            <p>$$CustomRating = AverageRating * NbRatings / (NbRatings + 1000)$$</p>
+            <br>
+            <pre class="stretch"><code data-trim>
+>>> ast.dump(ast.parse("AverageRating * NbRatings / (NbRatings + 1000)",
+                       mode="eval"))
+
+
+Expression(body=BinOp(left=BinOp(left=Name(id='AverageRating', ctx=Load()),
+                                 op=Mult(),
+                                 right=Name(id='NbRatings', ctx=Load())),
+                      op=Div(),
+                      right=BinOp(left=Name(id='NbRatings', ctx=Load()),
+                                  op=Add(),
+                                  right=Num(n=1000))))
+            </code></pre>
+
+            <aside class="notes">
+                <ul>
+                    <li>using python ast.parse begins to be really cool: we get more complex expressions including '()' parsed for free</li>
+                </ul>
+            </aside>
+        </section>
+
+
+        <section id="part-3">
+            <h2>3. Walking the AST to build data queries</h2>
+        </section>
+
+
+        <section>
+            <h3>3. AST: Great, but what can we do with it?</h3>
+<pre><code data-trim>
+Expression(body=BinOp(left=Name(id='x', ctx=Load()),
+                      op=Add(),
+                      right=Num(n=42)))
+            </code></pre>
+            <pre class="stretch"><code data-trim>
+OPERATORS = {
+    ast.Add: operator.add,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
 }
-					</code></pre>
-					<p>Code syntax highlighting courtesy of <a href="http://softwaremaniacs.org/soft/highlight/en/description/">highlight.js</a>.</p>
-				</section>
 
-				<section>
-					<h2>Marvelous List</h2>
-					<ul>
-						<li>No order here</li>
-						<li>Or here</li>
-						<li>Or here</li>
-						<li>Or here</li>
-					</ul>
-				</section>
+def eval_expr(expr):
+    return _eval(ast.parse(expr, mode='eval').body)
 
-				<section>
-					<h2>Fantastic Ordered List</h2>
-					<ol>
-						<li>One is smaller than...</li>
-						<li>Two is smaller than...</li>
-						<li>Three!</li>
-					</ol>
-				</section>
+def _eval(node):  # recursively evaluate tree nodes
+    if isinstance(node, ast.Num):
+        return node.n
+    elif isinstance(node, ast.BinOp):
+        return OPERATORS[type(node.op)](_eval(node.left), _eval(node.right))
+    elif isinstance(node, ast.UnaryOp):
+        return OPERATORS[type(node.op)](_eval(node.operand))
+    elif isinstance(node, ast.Name):
+        return ???
+    raise TypeError(node)
+</code></pre>
+        </section>
 
-				<section>
-					<h2>Tabular Tables</h2>
-					<table>
-						<thead>
-							<tr>
-								<th>Item</th>
-								<th>Value</th>
-								<th>Quantity</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td>Apples</td>
-								<td>$1</td>
-								<td>7</td>
-							<tr>
-							<tr>
-								<td>Lemonade</td>
-								<td>$2</td>
-								<td>18</td>
-							<tr>
-							<tr>
-								<td>Bread</td>
-								<td>$3</td>
-								<td>2</td>
-							<tr>
-						</tbody>
-					</table>
-				</section>
+        <section>
+            <h3>3. AST: Building a pandas query</h3>
 
-				<section>
-					<h2>Clever Quotes</h2>
-					<p>
-						These guys come in two forms, inline: <q cite="http://searchservervirtualization.techtarget.com/definition/Our-Favorite-Technology-Quotations">
-						&ldquo;The nice thing about standards is that there are so many to choose from&rdquo;</q> and block:
-					</p>
-					<blockquote cite="http://searchservervirtualization.techtarget.com/definition/Our-Favorite-Technology-Quotations">
-						&ldquo;For years there has been a theory that millions of monkeys typing at random on millions of typewriters would
-						reproduce the entire works of Shakespeare. The Internet has proven this theory to be untrue.&rdquo;
-					</blockquote>
-				</section>
+            <pre class="stretch"><code data-trim>
+class PandasEvaluator(object):
+    def __init__(self, dataframe):
+        self._dataframe = dataframe
 
-				<section>
-					<h2>Intergalactic Interconnections</h2>
-					<p>
-						You can link between slides internally,
-						<a href="#/2/3">like this</a>.
-					</p>
-				</section>
+    def eval_expr(self, expr):
+        return self._eval(ast.parse(expr, mode='eval').body)
 
-				<section>
-					<h2>Speaker View</h2>
-					<p>There's a <a href="https://github.com/hakimel/reveal.js#speaker-notes">speaker view</a>. It includes a timer, preview of the upcoming slide as well as your speaker notes.</p>
-					<p>Press the <em>S</em> key to try it out.</p>
+    def _eval(self, node):  # recursively evaluate tree nodes
+        if isinstance(node, ast.Num):
+            return node.n
+        elif isinstance(node, ast.BinOp):
+            return OPERATORS[type(node.op)](self._eval(node.left),
+                                            self._eval(node.right))
+        elif isinstance(node, ast.UnaryOp):
+            return OPERATORS[type(node.op)](self._eval(node.operand))
+        elif isinstance(node, ast.Name):
+            return self.dataframe[node.id]
+        raise TypeError(node)
 
-					<aside class="notes">
-						Oh hey, these are some notes. They'll be hidden in your presentation, but you can see them if you open the speaker notes window (hit 's' on your keyboard).
-					</aside>
-				</section>
+df = pandas.read_csv('ratings.csv')
+formula = "AverageRating * NbRatings / (NbRatings + 1000)"
+df['CustomRating'] = PandasEvaluator(df).eval_expr(formula)
+            </code></pre>
+        </section>
 
-				<section>
-					<h2>Export to PDF</h2>
-					<p>Presentations can be <a href="https://github.com/hakimel/reveal.js#pdf-export">exported to PDF</a>, here's an example:</p>
-					<iframe src="//www.slideshare.net/slideshow/embed_code/42840540" width="445" height="355" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:3px solid #666; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe>
-				</section>
+        <section>
+            <h3>3. AST: Building a SQL query using SQLAlchemy</h3>
 
-				<section>
-					<h2>Global State</h2>
-					<p>
-						Set <code>data-state="something"</code> on a slide and <code>"something"</code>
-						will be added as a class to the document element when the slide is open. This lets you
-						apply broader style changes, like switching the page background.
-					</p>
-				</section>
+            <pre class="stretch"><code data-trim>
+class SQLEvaluator(object):
+    def __init__(self, sql_table):
+        self._sql_table = sql_table  # instance of SQLAlchemy Table class
 
-				<section data-state="customevent">
-					<h2>State Events</h2>
-					<p>
-						Additionally custom events can be triggered on a per slide basis by binding to the <code>data-state</code> name.
-					</p>
-					<pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
-Reveal.addEventListener( 'customevent', function() {
-	console.log( '"customevent" has fired' );
-} );
-					</code></pre>
-				</section>
+    def eval_expr(self, expr):
+        return self._eval(ast.parse(expr, mode='eval').body)
 
-				<section>
-					<h2>Take a Moment</h2>
-					<p>
-						Press B or . on your keyboard to pause the presentation. This is helpful when you're on stage and want to take distracting slides off the screen.
-					</p>
-				</section>
+    def _eval(self, node):  # recursively evaluate tree nodes
+        if isinstance(node, ast.Num):
+            return node.n
+        elif isinstance(node, ast.BinOp):
+            return OPERATORS[type(node.op)](self._eval(node.left),
+                                            self._eval(node.right))
+        elif isinstance(node, ast.UnaryOp):
+            return OPERATORS[type(node.op)](self._eval(node.operand))
+        elif isinstance(node, ast.Name):
+            return self._sql_table[node.id]
+        raise TypeError(node)
 
-				<section>
-					<h2>Much more</h2>
-					<ul>
-						<li>Right-to-left support</li>
-						<li><a href="https://github.com/hakimel/reveal.js#api">Extensive JavaScript API</a></li>
-						<li><a href="https://github.com/hakimel/reveal.js#auto-sliding">Auto-progression</a></li>
-						<li><a href="https://github.com/hakimel/reveal.js#parallax-background">Parallax backgrounds</a></li>
-						<li><a href="https://github.com/hakimel/reveal.js#keyboard-bindings">Custom keyboard bindings</a></li>
-					</ul>
-				</section>
+session = sessionmaker(...)
+sql_table = Table(...)
+formula = "AverageRating * NbRatings / (NbRatings + 1000)"
+custom_ratings_column = SQLEvaluator(sql_table).eval_expr(formula)
+data = [row for row in session.query(custom_ratings_column)]
+            </code></pre>
+        </section>
 
-				<section style="text-align: left;">
-					<h1>THE END</h1>
-					<p>
-						- <a href="http://slides.com">Try the online editor</a> <br>
-						- <a href="https://github.com/hakimel/reveal.js">Source code &amp; documentation</a>
-					</p>
-				</section>
+        <section>
+            <h3>Building generic data queries using Python AST</h3>
 
-			</div>
+            <p>What we did so far:</p>
+            <ul>
+                <li>Enter a formula as a string</li>
+                <li>Parse it and generate the AST using python ast.parse</li>
+                <li>Use AST evaluators to build pandas and SQL new columns</li>
+                <li>In just ~20 lines of code!</li>
+            </ul>
 
-		</div>
+            <p>Wait... there is more!</p>
+            <ul>
+                <li>Add support for python "&gt; &lt; = and or not" operators</li>
+                <li>Use SqlAlchemy DSL to generate conditional queries:
+                    <pre><code>SELECT... CASE WHEN... ELSE ... END ... ;</code></pre></li>
+                <li>Use numpy masks to do the same with pandas dataframe</li>
+            </ul>
+        </section>
 
-		<script src="lib/js/head.min.js"></script>
-		<script src="js/reveal.js"></script>
+        <section>
+            <h3>Great links</h3>
 
-		<script>
+            <ul>
+                <li><a href="https://julien.danjou.info/books/the-hacker-guide-to-python/" target="_blank">The Hacker's Guide to
+                    Python</a><br>Great Python book by Julien Danjou; has a part on AST
+                </li>
+                <li>
+                    <a href="http://grouplens.org/datasets/movielens/" target="_blank">MovieLens database</a> by <a href="http://grouplens.org/" target="_blank">grouplens</a>
+                </li>
+                <li>
+                    <a href="http://blog.serenytics.com/2015/09/08/computing-new-columns-in-your-data-sets/">A detailed HowTo</a> to add new computed columns in your dataset using <a href="https://www.serenytics.com">Serenytics</a> (including conditional formulas)
+                </li>
+            </ul>
+        </section>
 
-			// Full list of configuration options available at:
-			// https://github.com/hakimel/reveal.js#configuration
-			Reveal.initialize({
-				controls: true,
-				progress: true,
-				history: true,
-				center: true,
+        <section>
+            <br>
+            <br>
+            <br>
+            <pre class="stretch" style="font-size: 0.9em"><code data-trim>
+Module(body=[
+    Print(dest=None,
+          values=[Str(s='Thank you! Questions?')],
+          nl=True)
+])
+            </code></pre>
+            <br>
+            <br>
+            <a href="http://twitter.com/adrienchauve">@adrienchauve</a>
+            <br>
+            <a href="mailto:adrien.chauve@serenytics.com">adrien.chauve@serenytics.com</a>
+            <br>
+            <br>
+            <aside class="notes">
+                <ul>
+                    <li>The HTML code of this slide is so ugly, but who cares?</li>
+                </ul>
+            </aside>
+        </section>
+    </div>
 
-				transition: 'slide', // none/fade/slide/convex/concave/zoom
+</div>
 
-				// Optional reveal.js plugins
-				dependencies: [
-					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
-					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
-					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
-					{ src: 'plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() { hljs.initHighlightingOnLoad(); } },
-					{ src: 'plugin/zoom-js/zoom.js', async: true },
-					{ src: 'plugin/notes/notes.js', async: true }
-				]
-			});
+<script src="lib/js/head.min.js"></script>
+<script src="js/reveal.js"></script>
 
-		</script>
+<script>
 
-	</body>
+    // Full list of configuration options available at:
+    // https://github.com/hakimel/reveal.js#configuration
+    Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+        slideNumber: true,
+
+        transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+        // Optional reveal.js plugins
+        dependencies: [
+            {
+                src: 'lib/js/classList.js', condition: function () {
+                return !document.body.classList;
+            }
+            },
+            {
+                src: 'plugin/markdown/marked.js', condition: function () {
+                return !!document.querySelector('[data-markdown]');
+            }
+            },
+            {
+                src: 'plugin/markdown/markdown.js', condition: function () {
+                return !!document.querySelector('[data-markdown]');
+            }
+            },
+            {
+                src: 'plugin/highlight/highlight.js', async: true, condition: function () {
+                return !!document.querySelector('pre code');
+            }, callback: function () {
+                hljs.initHighlightingOnLoad();
+            }
+            },
+            {src: 'plugin/zoom-js/zoom.js', async: true},
+            {src: 'plugin/notes/notes.js', async: true},
+            {src: 'plugin/math/math.js', async: true}
+        ],
+        math: {
+            mathjax: 'https://cdn.mathjax.org/mathjax/latest/MathJax.js',
+            config: 'TeX-AMS_HTML-full'  // See http://docs.mathjax.org/en/latest/config-files.html
+        }
+    });
+
+</script>
+
+</body>
 </html>
